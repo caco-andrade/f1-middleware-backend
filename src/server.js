@@ -15,8 +15,10 @@ const PORT = process.env.PORT || 3000;
 // Inicia o loop de busca de dados da OpenF1
 // O callback envia os dados para todos os clientes conectados via WebSocket
 openf1Service.startPolling((data) => {
-    io.emit('telemetria_atualizacao', data);
-    console.log(`Broadcast de telemetria enviado: ${new Date().toISOString()}`);
+    if (data && data.length > 0) {
+        io.emit('telemetria_atualizacao', data);
+        console.log(`[${new Date().toLocaleTimeString()}] Broadcast enviado: ${data.length} pilotos.`);
+    }
 }, 4000); // 4 segundos respeita o limite de 30req/min com folga
 
 io.on('connection', (socket) => {

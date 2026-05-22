@@ -19,7 +19,13 @@ class OpenF1Service {
                 const ultimasPosicoesMap = {};
                 
                 response.data.forEach(registro => {
-                    ultimasPosicoesMap[registro.driver_number] = registro;
+                    // Enviamos apenas o essencial para o App
+                    ultimasPosicoesMap[registro.driver_number] = {
+                        n: registro.driver_number,
+                        x: registro.x,
+                        y: registro.y,
+                        d: registro.date
+                    };
                 });
                 
                 this.lastLocationData = Object.values(ultimasPosicoesMap);
@@ -41,7 +47,14 @@ class OpenF1Service {
             const response = await axios.get(url);
             
             if (response.data && response.data.length > 0) {
-                this.lastLocationData = response.data;
+                // Mapeia dados de teste para o mesmo formato resumido
+                this.lastLocationData = response.data.map(d => ({
+                    n: d.driver_number,
+                    name: d.last_name,
+                    team: d.team_name,
+                    color: `#${d.team_colour}`,
+                    d: new Date().toISOString()
+                }));
                 return this.lastLocationData;
             }
             return this.lastLocationData;
@@ -55,20 +68,29 @@ class OpenF1Service {
     startPolling(callback, ms = 4000) {
         if (this.pollingInterval) return;
 
-        console.log(`Iniciando monitoramento OpenF1 a cada ${ms}ms...`);
-        this.pollingInterval = setInterval(async () => {
-            
-            // Trocado temporariamente para o método de teste para validar o fluxo hoje
-            const data = await this.fetchTestLatestLocation(); 
-            
-            if (data && callback) {
-                callback(data);
+        console.log(`Iniciando monitoramento resiliente OpenF1 a cada ${ms}ms...`);
+        
+        const poll = async () => {
+            try {
+                // Trocado temporariamente para o método de teste para validar o fluxo
+                const data = await this.fetchTestLatestLocation(); 
+                
+                if (data && callback) {
+                    callback(data);
+                }
+            } catch (err) {
+                console.error('Falha no ciclo de polling:', err.message);
+            } finally {
+                // Agenda a próxima execução apenas após a conclusão desta
+                this.pollingInterval = setTimeout(poll, ms);
             }
-        }, ms);
+        };
+
+        poll();
     }
 
     stopPolling() {
-        clearInterval(this.pollingInterval);
+        clearTimeout(this.pollingInterval);
         this.pollingInterval = null;
     }
 }
