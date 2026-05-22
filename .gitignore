@@ -1,0 +1,7 @@
+# Dependências (muito pesadas para o Git)
+node_modules/
+
+# Variáveis de ambiente (contêm dados sensíveis/segredos)
+.env
+.env.local
+.env.*.local
